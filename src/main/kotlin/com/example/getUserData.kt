@@ -7,68 +7,102 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Routing.getallusersfromdatabase() {
 //    val database = Database.connect
     get("/getallusers") {
-     val userdata = PostgresSetup.dbQuery {
-         UsersRepository.selectAll() .map {
-             UserResponse(it[UsersRepository.id],it[UsersRepository.name],it[UsersRepository.passwod],it[UsersRepository.grouptype])
-         }
-     }
+        val userdata = PostgresSetup.dbQuery {
+            UsersRepository.selectAll().map {
+                UserResponse(
+                    it[UsersRepository.id],
+                    it[UsersRepository.name],
+                    it[UsersRepository.passwod],
+                    it[UsersRepository.grouptype]
+                )
+            }
+        }
         call.respond(userdata)
     }
 
     post("/insertuser") {
+        CoroutineScope(Dispatchers.IO).launch {
+            val response = call.receive<List<UserResponse>>()
+            PostgresSetup.dbQuery {
+                transaction {
+                    for (i in response) {
+                        UsersRepository.insert {
+                            it[UsersRepository.id] = i.id
+                            it[UsersRepository.name] = i.name
+                            it[UsersRepository.passwod] = i.password
+                            it[UsersRepository.grouptype] = i.type
 
-        val response = call.receive<UserResponse>()
-        val user = PostgresSetup.dbQuery {
-            transaction {
-                UsersRepository.insert {
-                   it[UsersRepository.id] = response.id
-                   it[UsersRepository.name] = response.name
-                   it[UsersRepository.passwod] = response.password
-                   it[UsersRepository.grouptype] = response.type
+                        }
+                    }
                 }
             }
         }
+
         call.respondText("Data added successfully")
     }
 
-//    post("/updateuser") {
-//        val database = Database.connect
-//        val body = call.receive<Users>()
-//        if (!body.equals(null)) {
-//            val user = database.update(UsersRepository) {
-//                set(it.name, body.name)
-//                set(it.passwod, body.password)
-//                where {
-//                    it.id eq (body.id)
-//                }
-//
-//            }
-//            call.respond(user)
-//            call.respondText("Data updated successfully")
-//        }
-//
-//
-//    }
-//
-//    post("/deleteUser") {
-//        val database = Database.connect
-//        val id = call.request.queryParameters["id"]
-//        val delete = database.delete(UsersRepository) {
-//            it.id eq id!!.toInt()
-//        }
-//        call.respond(delete)
-//        call.respondText("Data deleted successfully")
-//
-//    }
+    post("/finduserbyId") {
+        val response = call.request.queryParameters["id"]?.toInt()
+        val user = PostgresSetup.dbQuery {
+            UsersRepository.select {
+                UsersRepository.id eq (response ?: 0)
+            }.map {
+                resultrowtouserresponce(it)
+            }
+        }
+        println(response)
+        println(user)
+        call.respond(user)
 
+    }
+
+    post("/updateuser") {
+        val response = call.receive<UserResponse>()
+        val database = PostgresSetup.dbQuery {
+            UsersRepository.update({ UsersRepository.id eq response.id }) {
+                it[UsersRepository.id] = response.id
+                it[UsersRepository.name] = response.name
+                it[UsersRepository.passwod] = response.password
+                it[UsersRepository.grouptype] = response.type
+            }
+        }
+        println(database)
+        call.respondText("Fields updated successfully")
+    }
+//
+    post("/deleteUser") {
+        val responce = call.request.queryParameters["id"]
+        val rowsdeleted = PostgresSetup.dbQuery {
+            UsersRepository.deleteWhere { (UsersRepository.id eq (responce?.toInt() ?: 0)) }
+
+        }
+        if (rowsdeleted > 0) {
+            call.respondText("Data deleted successfully")
+        } else {
+            call.respondText("No rows affected")
+        }
+
+    }
+
+}
+
+fun resultrowtouserresponce(resultRow: ResultRow): UserResponse {
+
+    return UserResponse(
+        resultRow[UsersRepository.id],
+        resultRow[UsersRepository.name],
+        resultRow[UsersRepository.passwod],
+        resultRow[UsersRepository.grouptype]
+    )
 }
