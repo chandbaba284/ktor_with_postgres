@@ -1,5 +1,6 @@
 package com.example.Databaseconfig
 
+import com.example.DatabaseTables.Groupsepo
 import com.example.DatabaseTables.UsersRepository
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -14,7 +15,7 @@ object PostgresSetup {
     fun init() {
         Database.connect(hikari())
         transaction {
-            SchemaUtils.create(UsersRepository)
+            SchemaUtils.create(UsersRepository,Groupsepo)
         }
 
     }
