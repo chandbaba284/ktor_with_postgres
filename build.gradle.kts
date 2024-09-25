@@ -10,6 +10,13 @@ plugins {
     id("io.ktor.plugin") version "2.1.3"
                 id("org.jetbrains.kotlin.plugin.serialization") version "1.7.21"
 }
+kotlin{
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(8))
+    }
+}
+
+
 
 group = "com.example"
 version = "0.0.1"
