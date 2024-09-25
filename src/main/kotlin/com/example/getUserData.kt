@@ -22,7 +22,10 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import javax.security.sasl.AuthenticationException
 
 fun Routing.getallusersfromdatabase() {
-//    val database = Database.connect
+
+    get("/Hello") {
+        call.respondText { "Hello Chand" }
+    }
     get("/getallusers") {
         val userdata = PostgresSetup.dbQuery {
             UsersRepository.selectAll().map {

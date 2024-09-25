@@ -15,6 +15,16 @@ kotlin{
         languageVersion.set(JavaLanguageVersion.of(8))
     }
 }
+tasks.register<Copy>("stage") {
+    // Copy the built jar file to the stage directory
+    from(tasks.getByName("build").outputs)
+    into("${buildDir}/stage")
+}
+
+tasks.named("build") {
+    // Ensure that the jar is built before staging
+    finalizedBy("stage")
+}
 
 
 
