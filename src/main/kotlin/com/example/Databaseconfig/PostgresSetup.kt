@@ -13,17 +13,20 @@ import org.jetbrains.exposed.sql.transactions.transaction
 object PostgresSetup {
 
     fun init() {
-        Database.connect(hikari())
+        val dataSource = HikariDataSource(hikari())
+        Database.connect(dataSource)
         transaction {
-            SchemaUtils.create(UsersRepository,Groupsepo)
+            SchemaUtils.create(UsersRepository, Groupsepo)
         }
 
     }
 
     fun hikari(): HikariDataSource {
         val config = HikariConfig()
-        config.driverClassName = System.getenv("JDBC_DRIVER") // 1
-        config.jdbcUrl = System.getenv("DATABASE_URL") // 2
+        config.driverClassName = System.getenv("DRIVER_NAME")
+        config.jdbcUrl = System.getenv("DATABASE_URL")
+        config.username = System.getenv("USER_NAME")
+        config.password = System.getenv("PASSWORD")
         config.maximumPoolSize = 3
         config.isAutoCommit = false
         config.transactionIsolation = "TRANSACTION_REPEATABLE_READ"

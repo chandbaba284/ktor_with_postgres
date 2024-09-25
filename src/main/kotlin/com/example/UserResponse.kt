@@ -6,5 +6,5 @@ import io.konform.validation.jsonschema.minLength
 
 @kotlinx.serialization.Serializable
 data class UserResponse(
-    var id :Int,var name : String,var password: String,var type :String
+    var id :Int,var name : String,var password: String
 )

@@ -29,8 +29,7 @@ fun Routing.getallusersfromdatabase() {
                 UserResponse(
                     it[UsersRepository.id],
                     it[UsersRepository.name],
-                    it[UsersRepository.passwod],
-                    it[UsersRepository.grouptype]
+                    it[UsersRepository.passwod]
                 )
             }
         }
@@ -38,22 +37,20 @@ fun Routing.getallusersfromdatabase() {
     }
 
     post("/insertusersList") {
-        CoroutineScope(Dispatchers.IO).launch {
-            val response = call.receive<List<UserResponse>>()
-            PostgresSetup.dbQuery {
-                transaction {
-                    for (i in response) {
-                        UsersRepository.insert {
-                            it[UsersRepository.id] = i.id
-                            it[UsersRepository.name] = i.name
-                            it[UsersRepository.passwod] = i.password
-                            it[UsersRepository.grouptype] = i.type
+        val response = call.receive<List<UserResponse>>()
+        PostgresSetup.dbQuery {
+            transaction {
+                for (item in response) {
+                    UsersRepository.insert {
+                        it[id] = item.id
+                        it[name] = item.name
+                        it[passwod] = item.password
 
-                        }
                     }
                 }
             }
         }
+
 
         call.respondText("Data added successfully")
     }
@@ -67,23 +64,22 @@ fun Routing.getallusersfromdatabase() {
                 maxLength(100)
             }
         }
-        val invalidUser = UserResponse(response.id,response.name,response.password,response.type)
+        val invalidUser = UserResponse(response.id, response.name, response.password)
         val validationResult = validateUser(invalidUser)
         println(validationResult)
-        if (validationResult.errors.size==0){
+        if (validationResult.errors.size == 0) {
             PostgresSetup.dbQuery {
                 transaction {
                     UsersRepository.insert {
                         it[UsersRepository.id] = response.id
                         it[UsersRepository.name] = response.name
                         it[UsersRepository.passwod] = response.password
-                        it[UsersRepository.grouptype] = response.type
 
                     }
                 }
             }
             call.respondText("Data added successfully")
-        }else{
+        } else {
             call.respondText(validationResult.toString())
         }
 
@@ -111,7 +107,6 @@ fun Routing.getallusersfromdatabase() {
                 it[UsersRepository.id] = response.id
                 it[UsersRepository.name] = response.name
                 it[UsersRepository.passwod] = response.password
-                it[UsersRepository.grouptype] = response.type
             }
         }
         println(database)
@@ -123,6 +118,19 @@ fun Routing.getallusersfromdatabase() {
         val rowsdeleted = PostgresSetup.dbQuery {
             UsersRepository.deleteWhere { (UsersRepository.id eq (responce?.toInt() ?: 0)) }
 
+        }
+        if (rowsdeleted > 0) {
+            call.respondText("Data deleted successfully")
+        } else {
+            call.respondText("No rows affected")
+        }
+
+    }
+    delete("/deleteAllUsersData") {
+        val rowsdeleted = PostgresSetup.dbQuery {
+            transaction {
+                UsersRepository.deleteAll()
+            }
         }
         if (rowsdeleted > 0) {
             call.respondText("Data deleted successfully")
@@ -147,7 +155,6 @@ fun resultrowtouserresponce(resultRow: ResultRow): UserResponse {
     return UserResponse(
         resultRow[UsersRepository.id],
         resultRow[UsersRepository.name],
-        resultRow[UsersRepository.passwod],
-        resultRow[UsersRepository.grouptype]
+        resultRow[UsersRepository.passwod]
     )
 }
